@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Website</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0 10%;
+            height: 100vh;
+            
+            /* ---- DESKTOP BACKGROUND SETUP ---- */
+            background-image: url('background.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+
+            /* Layout */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            /* TRANSITION SETUP */
+            opacity: 1;
+            transition: opacity 1.5s ease-in-out;
+            box-sizing: border-box;
+            
+            /* Prevent scrollbars */
+            overflow: hidden; 
+        }
+
+        /* Fade out class */
+        body.fade-out {
+            opacity: 0;
+        }
+
+        /* ---- Shared Button Styles ---- */
+        .base-button {
+            width: 375px; 
+            height: auto; 
+            cursor: pointer;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+            
+            /* Ensure buttons stay on top of the rotated background */
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ---- Subscribe Button (Left) ---- */
+        .subscribe-style {
+            border-radius: 50%; 
+            border: 6px solid white; 
+            box-sizing: border-box; 
+            transition: border-color 0.3s ease-in-out;
+        }
+        .subscribe-style:hover {
+            border-color: #5c9940; 
+        }
+
+        /* ---- Spinning Button (Right) ---- */
+        @keyframes spinSlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spin-style {
+            animation: spinSlow 10s linear infinite;
+            animation-play-state: paused;
+        }
+        .spin-style:hover {
+            animation-play-state: running;
+        }
+
+        /* =========================================
+           MOBILE RESPONSIVE STYLES
+           ========================================= */
+        @media (max-width: 768px) {
+            body {
+                /* 1. Stack buttons vertically */
+                flex-direction: column;
+                
+                /* 2. Center everything vertically and horizontally */
+                justify-content: center;
+                align-items: center;
+                
+                /* 3. Add a gap between the two stacked buttons */
+                gap: 50px; 
+
+                /* 4. Remove padding so 'center' works perfectly */
+                padding: 0; 
+
+                /* 5. Disable standard background */
+                background-image: none;
+            }
+
+            /* ROTATED BACKGROUND LAYER */
+            body::before {
+                content: "";
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                width: 100vh; 
+                height: 100vw;
+                background-image: url('background.png');
+                background-size: cover;
+                background-position: center;
+                transform: translate(-50%, -50%) rotate(90deg);
+                z-index: -1; 
+            }
+
+            .base-button {
+                /* Adjust button size for mobile */
+                width: 50%; 
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="https://www.youtube.com/channel/UCvD3Zk-8tNRX0239u9vfV7w?sub_confirmation=1" target="_blank">
+        <img src="subscribe.png" alt="Subscribe" class="base-button subscribe-style">
+    </a>
+
+    <a href="#" onclick="transitionToPage('8888.html'); return false;">
+        <img src="button.png" alt="Enter" class="base-button spin-style">
+    </a>
+
+    <script>
+        function transitionToPage(url) {
+            document.body.classList.add('fade-out');
+            setTimeout(function() {
+                window.location.href = url;
+            }, 1500);
+        }
+    </script>
+
+</body>
+</html>
