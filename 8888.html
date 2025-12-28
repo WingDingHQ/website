@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A Very 8888 Christmas</title>
+    
+    <link rel="icon" href="icon.png" type="image/png">
+
     <style>
         /* --- LOAD LOCAL FONTS --- */
         @font-face {
@@ -199,7 +202,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: auto; /* Will be set by JS */
+            /* Height set by JS to match singers panel */
         }
         
         .volume-container {
@@ -207,36 +210,43 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            position: relative; /* Anchor for absolute positioning */
-            min-height: 200px;
+            justify-content: center; /* Center the shorter slider vertically */
+            position: relative; 
             width: 100%;
         }
 
+        /* NEW WRAPPER TO CONTROL SLIDER SIZE */
+        .slider-wrapper {
+            position: relative;
+            width: 40px; /* Width of the track container */
+            /* Height set by JS (shorter than container) */
+        }
+
         #master-volume {
-            transform: rotate(-90deg);
+            transform: translate(-50%, -50%) rotate(-90deg);
             transform-origin: center;
             height: 6px; 
             margin: 0;
+            
             position: absolute; 
-            z-index: 2; /* Ensure slider is clickable */
+            top: 50%;
+            left: 50%;
+            
+            z-index: 2;
         }
 
         .volume-label {
             font-family: 'ComicCustom', sans-serif;
-            font-size: 18px; /* Slightly smaller to fit nicely */
+            font-size: 18px; 
             position: absolute;
             z-index: 1;
-            pointer-events: none; /* Let clicks pass through to slider area */
+            pointer-events: none; 
             white-space: nowrap;
             
-            /* We use a CSS variable --vol-percent updated by JS.
-               DESKTOP: Position based on Bottom.
-            */
+            /* Position relative to the slider-wrapper now */
             bottom: var(--vol-percent, 100%); 
-            left: 55%; /* Push it to the right of the center line */
-            transform: translateY(50%); /* Center vertically on the knob */
-            margin-left: 15px; /* Spacing from the slider track */
+            left: 50%; 
+            transform: translate(15px, 50%); /* 15px offset to right */
         }
 
         /* --- MOBILE RESPONSIVE --- */
@@ -263,24 +273,28 @@
                 order: 1;
             }
             
-            /* Reset Volume to horizontal */
             #volume-content { height: auto !important; }
             .volume-container { min-height: auto; margin-top: 30px; padding-bottom: 10px; }
             
+            /* Reset wrapper for mobile */
+            .slider-wrapper {
+                width: 100%;
+                height: auto !important;
+            }
+
             #master-volume {
                 transform: none;
                 position: relative;
+                top: auto; left: auto;
                 width: 100% !important;
                 height: 6px;
             }
             
-            /* Mobile Label Styling: Follows horizontally */
             .volume-label {
                 bottom: auto;
                 left: var(--vol-percent, 100%);
-                top: -30px; /* Float above the thumb */
-                margin-left: 0;
-                transform: translateX(-50%); /* Center horizontally on the knob */
+                top: -30px;
+                transform: translateX(-50%);
             }
         }
     </style>
@@ -415,8 +429,10 @@
             <div class="sidebar-content glass-panel" id="volume-content">
                 <h1 class="singers-heading" style="margin-top: 0;">Volume</h1>
                 <div class="volume-container" id="vol-container">
-                    <input type="range" id="master-volume" min="0" max="1" step="0.01" value="1">
-                    <div class="volume-label" id="volume-display">100%</div>
+                    <div class="slider-wrapper" id="slider-wrapper">
+                        <input type="range" id="master-volume" min="0" max="1" step="0.01" value="1">
+                        <div class="volume-label" id="volume-display">100%</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -428,17 +444,14 @@
             const audios = document.querySelectorAll('audio');
             const masterVolumeSlider = document.getElementById('master-volume');
             const volumeDisplay = document.getElementById('volume-display');
-            const volContainer = document.getElementById('vol-container');
+            const volContainer = document.getElementById('slider-wrapper'); // Apply var to wrapper now
 
             // --- VOLUME LOGIC ---
             function updateVolumeUI() {
                 const volume = masterVolumeSlider.value;
                 const percentage = Math.round(volume * 100);
                 
-                // Update text
                 volumeDisplay.textContent = percentage + '%';
-                
-                // Update Audio
                 audios.forEach(audio => audio.volume = volume);
 
                 // Update CSS Variable for Position (0% to 100%)
@@ -447,23 +460,33 @@
 
             masterVolumeSlider.addEventListener('input', updateVolumeUI);
             
-            // Initialize
             updateVolumeUI();
             
             // --- HEIGHT SYNC (Singers <-> Volume) ---
             const singersPanel = document.getElementById('singers-panel');
             const volumePanel = document.getElementById('volume-content');
+            const sliderWrapper = document.getElementById('slider-wrapper');
 
             function syncHeights() {
                 if (window.innerWidth > 1150) {
                     const height = singersPanel.offsetHeight;
+                    
+                    // 1. Keep the main container synced
                     volumePanel.style.height = height + 'px';
                     
-                    // Width of rotated slider = Height of container - header space
+                    // 2. Make the slider wrapper SHORTER (e.g., 60% of available height)
+                    // We subtract a bit for the header first, then apply percentage
                     const availableHeight = height - 80; 
-                    masterVolumeSlider.style.width = availableHeight + 'px';
+                    const sliderHeight = availableHeight * 0.6; 
+                    
+                    // Set height to wrapper
+                    sliderWrapper.style.height = sliderHeight + 'px';
+                    
+                    // Set width to input (rotation logic)
+                    masterVolumeSlider.style.width = sliderHeight + 'px';
                 } else {
                     volumePanel.style.height = 'auto';
+                    sliderWrapper.style.height = 'auto';
                     masterVolumeSlider.style.width = '100%';
                 }
             }
@@ -472,7 +495,7 @@
             window.addEventListener('resize', syncHeights);
             syncHeights();
 
-            // --- PLAYER LOGIC (Existing) ---
+            // --- PLAYER LOGIC ---
             audios.forEach(audio => {
                 const id = audio.id.split('-')[1];
                 const setInitialDuration = () => {
