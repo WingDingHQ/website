@@ -80,11 +80,11 @@
             max-width: 100%;
         }
 
-        /* 3. RIGHT COLUMN (Ghost/Spacer) */
+        /* 3. RIGHT COLUMN (Volume) - UPDATED */
         .side-column-right {
             flex: 0 0 300px; 
-            visibility: hidden; 
-            height: 0; 
+            display: flex;
+            justify-content: flex-start; 
         }
 
         /* --- SHARED GLASS STYLE --- */
@@ -142,7 +142,7 @@
         .title-logo {
             display: block;
             margin: 0 auto 30px auto; 
-            max-width: 100%;          
+            max-width: 100%;           
             height: auto;             
         }
 
@@ -199,6 +199,19 @@
         }
         .back-link:hover { color: white; }
 
+        /* --- VOLUME SPECIFIC STYLES --- */
+        .volume-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .volume-label {
+            font-family: 'ComicCustom', sans-serif;
+            font-size: 24px;
+        }
+
         /* --- MOBILE RESPONSIVE --- */
         @media (max-width: 1150px) {
             .layout-wrapper {
@@ -206,13 +219,15 @@
                 align-items: center;
                 gap: 30px;
             }
-            .side-column-left, .center-column {
+            .side-column-left, .center-column, .side-column-right {
                 flex: auto;
                 width: 100%;
                 max-width: 500px;
             }
+            /* UPDATED: Show right column on mobile now */
             .side-column-right {
-                display: none; 
+                justify-content: center;
+                order: 3; /* Places volume at bottom */
             }
             .side-column-left {
                 justify-content: center;
@@ -350,13 +365,37 @@
             <a href="index.html" class="back-link">← return to home</a>
         </div>
 
-        <div class="side-column-right"></div>
+        <div class="side-column-right">
+            <div class="sidebar-content glass-panel">
+                <h1 class="singers-heading" style="margin-top: 0;">Volume</h1>
+                <div class="volume-container">
+                    <input type="range" id="master-volume" min="0" max="1" step="0.01" value="1" style="cursor: pointer;">
+                    <div class="volume-label" id="volume-display">100%</div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const audios = document.querySelectorAll('audio');
+            
+            // --- NEW VOLUME LOGIC ---
+            const masterVolumeSlider = document.getElementById('master-volume');
+            const volumeDisplay = document.getElementById('volume-display');
+
+            masterVolumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value;
+                const percentage = Math.round(volume * 100);
+                volumeDisplay.textContent = percentage + '%';
+                
+                // Update volume for all audio tracks
+                audios.forEach(audio => {
+                    audio.volume = volume;
+                });
+            });
+            // -------------------------
             
             audios.forEach(audio => {
                 const id = audio.id.split('-')[1];
@@ -442,5 +481,4 @@
         }
     </script>
 </body>
-
 </html>
