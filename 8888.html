@@ -180,9 +180,7 @@
         }
         input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.5); }
         
-        /* Specific Horizontal Slider Style */
         .seek-slider { width: 100%; height: 4px; }
-
         .time-display { font-size: 14px; min-width: 90px; text-align: right; opacity: 0.8; }
         
         .back-link { 
@@ -197,43 +195,48 @@
         .back-link:hover { color: white; }
 
         /* --- VERTICAL VOLUME STYLES --- */
-        .volume-container {
-            /* This container will flex to fill the available height */
-            flex-grow: 1; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            min-height: 200px; /* Minimum height for visual stability */
-            width: 100%;
-        }
-
-        /* We rotate the range input -90 degrees so it goes from Bottom (0) to Top (1).
-           Because rotating removes it from normal flow dimensions, we manipulate width/height via JS 
-        */
-        #master-volume {
-            transform: rotate(-90deg);
-            transform-origin: center;
-            height: 6px; /* Thickness of the bar */
-            margin: 0;
-            position: absolute; /* Allows us to center it easily despite rotation */
-        }
-
-        .volume-label {
-            font-family: 'ComicCustom', sans-serif;
-            font-size: 24px;
-            margin-top: auto; /* Push to bottom if needed, though absolute positioning overrides */
-            position: absolute;
-            bottom: 0;
-        }
-        
-        /* Updated Sidebar Content for Right Column */
         #volume-content {
             display: flex;
             flex-direction: column;
             align-items: center;
             height: auto; /* Will be set by JS */
+        }
+        
+        .volume-container {
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative; /* Anchor for absolute positioning */
+            min-height: 200px;
+            width: 100%;
+        }
+
+        #master-volume {
+            transform: rotate(-90deg);
+            transform-origin: center;
+            height: 6px; 
+            margin: 0;
+            position: absolute; 
+            z-index: 2; /* Ensure slider is clickable */
+        }
+
+        .volume-label {
+            font-family: 'ComicCustom', sans-serif;
+            font-size: 18px; /* Slightly smaller to fit nicely */
+            position: absolute;
+            z-index: 1;
+            pointer-events: none; /* Let clicks pass through to slider area */
+            white-space: nowrap;
+            
+            /* We use a CSS variable --vol-percent updated by JS.
+               DESKTOP: Position based on Bottom.
+            */
+            bottom: var(--vol-percent, 100%); 
+            left: 55%; /* Push it to the right of the center line */
+            transform: translateY(50%); /* Center vertically on the knob */
+            margin-left: 15px; /* Spacing from the slider track */
         }
 
         /* --- MOBILE RESPONSIVE --- */
@@ -260,18 +263,24 @@
                 order: 1;
             }
             
-            /* Reset Volume to horizontal on mobile for usability */
+            /* Reset Volume to horizontal */
             #volume-content { height: auto !important; }
-            .volume-container { min-height: auto; margin-top: 20px; padding-bottom: 20px;}
+            .volume-container { min-height: auto; margin-top: 30px; padding-bottom: 10px; }
+            
             #master-volume {
                 transform: none;
                 position: relative;
                 width: 100% !important;
                 height: 6px;
             }
+            
+            /* Mobile Label Styling: Follows horizontally */
             .volume-label {
-                position: relative;
-                margin-top: 15px;
+                bottom: auto;
+                left: var(--vol-percent, 100%);
+                top: -30px; /* Float above the thumb */
+                margin-left: 0;
+                transform: translateX(-50%); /* Center horizontally on the knob */
             }
         }
     </style>
@@ -405,7 +414,7 @@
         <div class="side-column-right">
             <div class="sidebar-content glass-panel" id="volume-content">
                 <h1 class="singers-heading" style="margin-top: 0;">Volume</h1>
-                <div class="volume-container">
+                <div class="volume-container" id="vol-container">
                     <input type="range" id="master-volume" min="0" max="1" step="0.01" value="1">
                     <div class="volume-label" id="volume-display">100%</div>
                 </div>
@@ -419,56 +428,57 @@
             const audios = document.querySelectorAll('audio');
             const masterVolumeSlider = document.getElementById('master-volume');
             const volumeDisplay = document.getElementById('volume-display');
+            const volContainer = document.getElementById('vol-container');
 
             // --- VOLUME LOGIC ---
-            masterVolumeSlider.addEventListener('input', (e) => {
-                const volume = e.target.value;
+            function updateVolumeUI() {
+                const volume = masterVolumeSlider.value;
                 const percentage = Math.round(volume * 100);
+                
+                // Update text
                 volumeDisplay.textContent = percentage + '%';
+                
+                // Update Audio
                 audios.forEach(audio => audio.volume = volume);
-            });
+
+                // Update CSS Variable for Position (0% to 100%)
+                volContainer.style.setProperty('--vol-percent', (volume * 100) + '%');
+            }
+
+            masterVolumeSlider.addEventListener('input', updateVolumeUI);
             
-            // --- HEIGHT SYNCHRONIZATION LOGIC ---
+            // Initialize
+            updateVolumeUI();
+            
+            // --- HEIGHT SYNC (Singers <-> Volume) ---
             const singersPanel = document.getElementById('singers-panel');
             const volumePanel = document.getElementById('volume-content');
-            const volumeSlider = document.getElementById('master-volume');
 
             function syncHeights() {
-                // Only sync on desktop where layout is side-by-side
                 if (window.innerWidth > 1150) {
-                    // 1. Get height of the filled Singers panel
                     const height = singersPanel.offsetHeight;
-                    
-                    // 2. Apply that height to the Volume panel
                     volumePanel.style.height = height + 'px';
                     
-                    // 3. Set the slider width to fit inside vertically
-                    // (Since we rotate it 90deg, 'width' becomes the visual height)
-                    // We subtract approx 100px for the "Volume" header and "100%" label space
-                    const availableHeight = height - 100; 
-                    volumeSlider.style.width = availableHeight + 'px';
+                    // Width of rotated slider = Height of container - header space
+                    const availableHeight = height - 80; 
+                    masterVolumeSlider.style.width = availableHeight + 'px';
                 } else {
-                    // Reset for mobile
                     volumePanel.style.height = 'auto';
-                    volumeSlider.style.width = '100%';
+                    masterVolumeSlider.style.width = '100%';
                 }
             }
 
-            // Run on load and whenever window resizes
             window.addEventListener('load', syncHeights);
             window.addEventListener('resize', syncHeights);
-            // Also run immediately in case images are cached
             syncHeights();
 
-
-            // --- AUDIO INITIALIZATION (Existing Code) ---
+            // --- PLAYER LOGIC (Existing) ---
             audios.forEach(audio => {
                 const id = audio.id.split('-')[1];
                 const setInitialDuration = () => {
                     if (audio.duration && !isNaN(audio.duration) && audio.duration !== Infinity) {
                         const duration = formatTime(audio.duration);
-                        const timeDisplay = document.getElementById(`time-${id}`);
-                        timeDisplay.textContent = `0:00 / ${duration}`;
+                        document.getElementById(`time-${id}`).textContent = `0:00 / ${duration}`;
                     }
                 };
                 if (audio.readyState >= 1) setInitialDuration();
@@ -476,7 +486,6 @@
             });
         });
 
-        // --- EXISTING PLAYBACK FUNCTIONS ---
         function togglePlay(id) {
             const audio = document.getElementById(`audio-${id}`);
             const icon = document.getElementById(`icon-${id}`);
